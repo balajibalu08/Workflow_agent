@@ -13,7 +13,7 @@ class RouterAgent:
         self.endpoint = env.MICROSOFT_FOUNDRY_ENDPOINT
         self.model = env.CHAT_MODEL_DEPLOYMENT_NAME
         if not self.endpoint or not self.model:
-            logger.warning(f"Missing project endpoint or model {self.model} or {self.model}")
+            logger.warning(f"Missing project endpoint or model {self.endpoint} or {self.model}")
             raise ValueError("Foundry Endpoint or model cant be None or Empty")
         self.client = FoundryChatClient(
             credential= AzureCliCredential(),
@@ -24,7 +24,7 @@ class RouterAgent:
 
         self.router_agent = self.client.as_agent(
             name="Router_Agent",
-            description= "Analys user prompt and Route the workflow according to intent of the user",
+            description= "Analyzes the user's request, determines the intent, identifies the input source, and returns a RouteDecision object.",
             instructions= RouterAgentPrompt,
             default_options={
                 "response_format": RouteDecision, 
@@ -32,6 +32,9 @@ class RouterAgent:
 
         )
         logger.info("Route agent created")
+    async def route_request(self, user_input: str):
+        response = await self.router_agent.run(user_input)
+        return response.value
     @property
     def agent(self):
         return self.router_agent
