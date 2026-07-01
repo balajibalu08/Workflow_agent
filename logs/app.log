@@ -100759,3 +100759,5 @@ json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
 2026-06-28 13:38:30,418 | DEBUG    | agent_framework._workflows._runner | No outgoing edges found for executor Resume_Analyser; dropping messages.
 2026-06-28 13:38:30,482 | INFO     | agent_framework._workflows._runner | Completed superstep 2
 2026-06-28 13:38:30,482 | INFO     | agent_framework._workflows._runner | Workflow completed after 2 supersteps
+2026-06-30 20:06:01,491 | DEBUG    | asyncio | Using proactor: IocpProactor
+2026-06-30 20:06:01,494 | WARNING  | src.utils.logs | Missing project endpoint or model gpt-5.1-deployment or gpt-5.1-deployment

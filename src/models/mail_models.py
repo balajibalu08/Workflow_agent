@@ -1,30 +1,27 @@
-from pydantic import BaseModel,Field, model_validator
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional, Literal
-from src.utils.prompts import route_decision_prompts
-class RouteDecision(BaseModel):
-    intent: Literal[
-        "resume_analysis",
-        "spam_detection",
-        "unknown"
-    ] = Field(..., description=route_decision_prompts["RouteDecision"])
-    input_source:Literal[
-        "url",
-        "text",
-        "file",
-        "missing"
-    ] = Field(...,description=route_decision_prompts["input_source"])
-    source_value : Optional[str] =  Field(default=None, description=route_decision_prompts["source_value"])
-    requires_user_input : bool = Field(default= False, description=route_decision_prompts["requires_user_input"])
-    user_prompt : Optional[str] = Field(default=None, description=route_decision_prompts["user_prompt"])
-    @model_validator(mode = 'after')
+from utils.field_prompts  import spam_analysis
+
+class SpamAnalysis(BaseModel):
+    is_spam:bool = Field(..., description= spam_analysis["is_spam"])
+    confidence_score: float = Field(..., gt=0, lt=1, description=spam_analysis["confidence_score"])
+    category : Literal[
+        "phishing",
+        "marketing",
+        "scam",
+        "malware",
+        "legitimate"
+    ] = Field(..., description=spam_analysis["category"])
+    reasoning : str = Field(..., description=spam_analysis["reasoning"])
+    indicators:list[str] = Field(..., description=spam_analysis["indicators"])
+    recommended_action : str = Field(..., description=spam_analysis["recommended_action"])
+    
+    @model_validator(mode="after")
     def check_conditional_fields(self):
-        if self.intent == "unknown" and self.requires_user_input is False:
-            raise ValueError("if Intent is unkown then requires_user_input must be True")
-        if self.input_source == "missing" and self.source_value:
-            raise ValueError("source_value must be None when input_source is 'missing'.")
-        if self.input_source !="missing" and self.source_value is None:
-            raise ValueError("source_value must be provided when input_source is 'url', 'file', or 'text'.")
-        if self.requires_user_input and self.user_prompt is None:
-            raise ValueError("if requires_user_input is True then user_prompt must not be None")
-        if self.requires_user_input is False and self.user_prompt:
-            raise ValueError("if requires_user_input is False then user_prompt must  be None")
+        if not self.is_spam and self.category != "Legitimate":
+            raise ValueError("If mail is not spam category have to 'Legitimate'")
+        if len(self.indicators) == 0:
+            raise ValueError("If mail is spam then there should be indicators why the mail is spam")
+        if self.reasoning.strip() =="" :
+            raise ValueError("Resoning Cant be Empty")
+        return self
