@@ -1,106 +1,106 @@
+from fastapi import FastAPI, UploadFile, File, Form
+from fastapi.middleware.cors import CORSMiddleware
+import tempfile
+import shutil
 import json
 import asyncio
+import os
 
-from agent_framework import AgentResponseUpdate
-
-from src.models.resume_models import ResumeAnalysis
-from src.utils.logs import logger
 from src.utils.workflow import workflow
-from src.utils.variable import Env
+
+app = FastAPI(
+    title="AI Resume & Spam Analyzer",
+    version="1.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
-async def main():
-    env = Env()
-    print("Project Endpoint:", env.MICROSOFT_FOUNDRY_ENDPOINT)
-    print("Model:", env.CHAT_MODEL_DEPLOYMENT_NAME)
-    pdf_path = "Resume.pdf"
-    print(type(workflow))
-    print(workflow)
+async def execute_workflow(message: str):
 
-    print("Runner:", workflow._runner)
-    print("Max iterations:", workflow._runner._max_iterations)
-    print("Type:", type(workflow._runner._max_iterations))
-    events = workflow.run(pdf_path, stream=True)
+    result = await workflow.run(message)
 
-    async for event in events:
+    outputs = result.get_outputs()
 
-        if event.type != "output":
-            continue
+    if len(outputs) < 2:
+        raise Exception("Workflow returned insufficient outputs.")
 
-        if not isinstance(event.data, AgentResponseUpdate):
-            continue
+    routing = json.loads(outputs[0].text)
+
+    final = json.loads(outputs[-1].text)
+
+    if "candidate" in final:
+        result_type = "resume"
+
+    elif "is_spam" in final:
+        result_type = "spam"
+
+    else:
+        result_type = "unknown"
+
+    return {
+        "routing": routing,
+        "result": {
+            "type": result_type,
+            "data": final
+        }
+    }
+
+@app.get("/")
+async def root():
+    return {
+        "message": "AI Resume & Spam Analysis API Running"
+    }
+
+
+@app.post("/analyze/resume")
+async def analyze_resume(
+        file: UploadFile = File(...)
+):
+
+    temp_dir = tempfile.mkdtemp()
+
+    file_path = os.path.join(
+        temp_dir,
+        file.filename
+    )
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    message = json.dumps({
+        "user_input": "Analyze this resume.",
+        "input_source": file_path
+    })
+
+    try:
+
+        response = await execute_workflow(message)
+
+        return response
+
+    finally:
 
         try:
-            resume = ResumeAnalysis.model_validate(
-                json.loads(event.data.text)
-            )
-
-            print("=" * 80)
-            print("Candidate")
-            print("=" * 80)
-            print(resume.candidate)
-
-            print("=" * 80)
-            print("Skills")
-            print("=" * 80)
-            print(resume.skills)
-
-            print("=" * 80)
-            print("Education")
-            print("=" * 80)
-
-            for edu in resume.education:
-                print(edu)
-
-            print("=" * 80)
-            print("Experience")
-            print("=" * 80)
-
-            if resume.experience:
-                for exp in resume.experience:
-                    print(exp)
-
-            print("=" * 80)
-            print("Projects")
-            print("=" * 80)
-
-            if resume.projects:
-                for project in resume.projects:
-                    print(project)
-
-            print("=" * 80)
-            print("Certifications")
-            print("=" * 80)
-
-            if resume.certifications:
-                for cert in resume.certifications:
-                    print(cert)
-
-            print("=" * 80)
-            print("Achievements")
-            print("=" * 80)
-
-            if resume.achievements:
-                for achievement in resume.achievements:
-                    print(achievement)
-
-            print("=" * 80)
-            print("Languages")
-            print("=" * 80)
-
-            if resume.languages:
-                for language in resume.languages:
-                    print(language)
-
-            print("=" * 80)
-            print("AI Analysis")
-            print("=" * 80)
-            print(resume.ai_analysis)
-
-        except Exception as e:
-            logger.exception(e)
-            print(event.data.text)
+            shutil.rmtree(temp_dir)
+        except Exception:
+            pass
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+@app.post("/analyze/spam")
+async def analyze_spam(
+        email_text: str = Form(...)
+):
+
+    message = json.dumps({
+        "user_input": "Analyze this email.",
+        "input_source": email_text
+    })
+
+    return await execute_workflow(message)

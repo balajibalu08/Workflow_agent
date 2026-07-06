@@ -9,8 +9,11 @@ from dotenv import load_dotenv
 import os
 from azure.ai.documentintelligence import DocumentIntelligenceClient
 from azure.core.credentials import AzureKeyCredential
+from src.models.route_decision_models import RouteDecision
 from src.utils.logs import logger
 from src.utils.variable import Env
+from agent_framework import AgentExecutorResponse
+
 
 load_dotenv(override=True)
 
@@ -29,7 +32,8 @@ class DocumentExtractionExecutor(Executor):
         self.client = DocumentIntelligenceClient(
             endpoint=endpoint,
             credential=AzureKeyCredential(key)
-        )
+        )   
+    
     @handler
     async def PDF_Extractor(self, path: str, context: WorkflowContext) -> None:
         if not self.client:
@@ -107,6 +111,31 @@ class MockWorkflowContext:
             print(message)
         print("="*50 + "\n")
 
+class PathTransformer(Executor):
+    def __init__(self):
+        super().__init__(id="path_transformer")
+    @handler
+    async def filePathTransformer(self, response: AgentExecutorResponse, context: WorkflowContext) -> None:
+        logger.info("Transforming route decision to file path...")
+        route: RouteDecision = RouteDecision.model_validate_json(response.agent_response.text)
+        if not route.source_value:
+            logger.error("RouteDecision does not contain a source_value.")
+            raise ValueError("RouteDecision does not contain a source_value.")
+        logger.info(f"RouteDecision received: intent={route.intent}, input_source={route.input_source}, source_value={route.source_value}")
+        if route.input_source != "file":
+            logger.error(f"Expected 'file', got '{route.input_source}'.")
+            raise ValueError(
+               
+                f"Expected 'file', got '{route.input_source}'."
+            )
+        if route.input_source not in ("file", "url"):
+            logger.error(f"Expected file or url input, got '{route.input_source}'.")
+            raise ValueError(
+                f"Expected file or url input, got '{route.input_source}'."
+            )
+        logger.info(f"Extracting file path from route decision: {route.source_value}")
+
+        await context.send_message(route.source_value)
 async def main():
     # 1. Define the path to a test PDF (update this to point to a real file)
     test_pdf_path = "Resume.pdf" 

@@ -1,4 +1,5 @@
 from agent_framework import (
+    AgentExecutorResponse,
     Executor,
     WorkflowContext,
     handler,
@@ -7,6 +8,8 @@ import httpx
 import aiofiles
 import uuid
 import os
+
+from websockets import route
 from src.utils.logs import logger
 
 # 4. Small helper isolated outside the class for clean logic
@@ -15,6 +18,7 @@ def is_pdf(content: bytes) -> bool:
 
 class PDFDownloadExecutor(Executor):
     def __init__(self):
+        super().__init__(id="pdf_downloader")
         self.download_dir = os.path.join(".", "downloads")
         os.makedirs(self.download_dir, exist_ok=True)
         
@@ -24,8 +28,10 @@ class PDFDownloadExecutor(Executor):
 
     @handler
     # 3. Type annotations added for better developer experience
-    async def download_pdf(self, url: str, context: WorkflowContext[str]):
-        
+    async def download_pdf(self, response: AgentExecutorResponse, context: WorkflowContext[str]):
+        route = response.output   # or the correct property if your framework differs
+        url = route.source_value
+
         # 7. URL Validation: First line of defense
         if not url.startswith(("http://", "https://")):
             logger.error(f"Invalid URL scheme provided: {url}")

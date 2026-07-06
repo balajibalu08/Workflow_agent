@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from agent_framework.foundry import FoundryChatClient
 from src.utils.variable import Env
 from src.models.resume_models import ResumeAnalysis
-from utils.llm_prompts import ResumeAnalysisPrompt
+from src.utils.llm_prompts import ResumeAnalysisPrompt
 from src.utils.logs import logger
 from azure.identity import AzureCliCredential
 

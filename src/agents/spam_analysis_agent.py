@@ -8,7 +8,7 @@ from src.utils.llm_prompts import SpamAnalysisPrompt
 from src.models.mail_models import SpamAnalysis
 
 class SpamAnalysisAgent:
-    def __intit__(self):
+    def __init__(self):
         env = Env()
         self.endpoint = env.MICROSOFT_FOUNDRY_ENDPOINT
         self.model = env.CHAT_MODEL_DEPLOYMENT_NAME
