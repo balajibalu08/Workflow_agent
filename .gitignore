@@ -1,0 +1,4 @@
+.env
+src/resource_creation/.env
+__pycache__/
+*.pyc

@@ -1,0 +1,29 @@
+# General Utilities & Code Quality
+jsmin>=3.0.0
+python-dotenv
+pyyaml
+google-yamlfmt
+ruff
+
+# Azure Authentication
+azure-identity
+cryptography>=42.0.0
+azure-core
+
+# Azure AI Services & Agents
+azure-ai-projects
+agent-framework
+azure-ai-documentintelligence
+azure-search-documents
+openai
+
+# Azure Management (Control Plane)
+azure-mgmt-resource
+azure-mgmt-storage
+azure-mgmt-search
+azure-mgmt-subscription
+
+# Azure Storage (Data Plane)
+azure-storage-blob
+
+aiofiles>=23.2.1
